@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from './constants';
+import { STORAGE_KEY, SESSION_KEY } from './constants';
 
 export const DEFAULT_PASSWORDS = {
   kakak: '369c65b755dcaae4e23c927660782dc27359d2f84d79afa3415d596ed9abb0ea',
@@ -33,13 +33,23 @@ export function saveState(state) {
 }
 
 export function getSession() {
-  return sessionStorage.getItem('roomCleaningSession');
+  let userId = localStorage.getItem(SESSION_KEY);
+  if (!userId) {
+    userId = sessionStorage.getItem(SESSION_KEY);
+    if (userId) {
+      localStorage.setItem(SESSION_KEY, userId);
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  }
+  return userId;
 }
 
 export function setSession(userId) {
-  sessionStorage.setItem('roomCleaningSession', userId);
+  localStorage.setItem(SESSION_KEY, userId);
+  sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function clearSession() {
-  sessionStorage.removeItem('roomCleaningSession');
+  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
 }
