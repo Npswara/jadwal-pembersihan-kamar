@@ -1,4 +1,4 @@
-import { CYCLE_DAYS, FINE_PER_DAY, MS_PER_DAY } from './constants';
+import { FINE_PER_DAY, MS_PER_DAY, getCycleDaysForUser } from './constants';
 
 export function addDays(date, days) {
   const result = new Date(date);
@@ -11,9 +11,9 @@ export function getFirstOfNextMonth(fromDate = new Date()) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0);
 }
 
-export function getNextCycleDates(fromDate = new Date()) {
+export function getNextCycleDates(fromDate = new Date(), holderId = 'kakak') {
   const cycleStartedAt = getFirstOfNextMonth(fromDate);
-  const deadline = addDays(cycleStartedAt, CYCLE_DAYS);
+  const deadline = addDays(cycleStartedAt, getCycleDaysForUser(holderId));
   return { cycleStartedAt, deadline };
 }
 

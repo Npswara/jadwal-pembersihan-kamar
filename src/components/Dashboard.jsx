@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { getUser, FINE_PER_DAY, CYCLE_DAYS } from '../utils/constants';
+import {
+  getUser,
+  FINE_PER_DAY,
+  CYCLE_DAYS,
+  ADIK_CYCLE_DAYS,
+  CLEANING_TASKS,
+  getCycleDaysForUser,
+} from '../utils/constants';
 import { formatDateId, getDaysLate, getFineAmount, formatRupiah, isBeforeCycleStart } from '../utils/dateUtils';
 import Countdown from './Countdown';
+import CleaningChecklist from './CleaningChecklist';
 import PhotoCapture from './PhotoCapture';
 import PendingPhotoReview from './PendingPhotoReview';
 
@@ -10,14 +18,25 @@ export default function Dashboard() {
   const { state, currentUserId, submitPhotoProof } = useApp();
   const [showCamera, setShowCamera] = useState(false);
   const [message, setMessage] = useState('');
+  const [checkedTasks, setCheckedTasks] = useState({});
 
   const isHolder = state.currentHolder === currentUserId;
   const holder = getUser(state.currentHolder);
+  const holderCycleDays = getCycleDaysForUser(state.currentHolder);
   const sibling = getUser(getUser(currentUserId).siblingId);
   const daysLate = state.deadline ? getDaysLate(state.deadline) : 0;
   const fine = state.deadline ? getFineAmount(state.deadline) : 0;
   const waitingForCycle = state.cycleStartedAt && isBeforeCycleStart(state.cycleStartedAt);
   const hasPending = !!state.pendingPhoto;
+  const allTasksDone = CLEANING_TASKS.every((_, i) => checkedTasks[i]);
+
+  useEffect(() => {
+    setCheckedTasks({});
+  }, [state.currentHolder]);
+
+  const toggleTask = (index) => {
+    setCheckedTasks((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
 
   const deadlineText = state.deadline
     ? waitingForCycle
@@ -43,8 +62,10 @@ export default function Dashboard() {
               <p className="card__text">{deadlineText}</p>
             ) : (
               <p className="card__text">
-                Giliran pertama Anda. Timer {CYCLE_DAYS} hari dimulai tanggal 1 bulan berikutnya
+                Giliran pertama Anda. Timer {holderCycleDays} hari dimulai tanggal 1 bulan berikutnya
                 setelah konfirmasi pembersihan.
+                {state.currentHolder === 'adik' &&
+                  ` (Adik: ${ADIK_CYCLE_DAYS} hari.)`}
               </p>
             )}
           </>
@@ -74,7 +95,8 @@ export default function Dashboard() {
         <h2 className="card__title">Aturan Denda</h2>
         <p className="card__text fine-info">
           Setelah pembersihan dikonfirmasi, timer dimulai tanggal <strong>1 bulan berikutnya</strong>.
-          Pemegang giliran diberi waktu <strong>{CYCLE_DAYS} hari</strong> sejak tanggal tersebut.
+          Kakak diberi waktu <strong>{CYCLE_DAYS} hari</strong>, Adik diberi waktu{' '}
+          <strong>{ADIK_CYCLE_DAYS} hari</strong> sejak tanggal tersebut.
           Jika batas waktu terlewati, denda sebesar <strong>{formatRupiah(FINE_PER_DAY)}</strong> per
           hari keterlambatan akan dihitung otomatis dan masuk ke dana kas kebersihan bersama.
         </p>
@@ -93,7 +115,7 @@ export default function Dashboard() {
         ) : (
           <>
             <p className="fine-text fine-text--late">
-              Masa tenggang {CYCLE_DAYS} hari telah terlewati ({daysLate} hari terlambat). Akumulasi denda
+              Masa tenggang {holderCycleDays} hari telah terlewati ({daysLate} hari terlambat). Akumulasi denda
               saat ini: <strong>{formatRupiah(fine)}</strong>.
               {!isHolder && ` (Tanggung jawab ${holder.name})`}
             </p>
@@ -108,6 +130,12 @@ export default function Dashboard() {
       <PendingPhotoReview />
 
       {isHolder && !hasPending && (
+        <section className="card card--checklist">
+          <CleaningChecklist checked={checkedTasks} onToggle={toggleTask} />
+        </section>
+      )}
+
+      {isHolder && !hasPending && (
         <section className="card card--action">
           {!showCamera ? (
             <>
@@ -115,13 +143,21 @@ export default function Dashboard() {
                 type="button"
                 className="btn btn--primary btn--large btn--block"
                 onClick={() => setShowCamera(true)}
+                disabled={!allTasksDone}
               >
                 Saya Sudah Selesai Membersihkan Kamar
               </button>
-              <p className="card__text card__text--muted card__text--center">
-                Tombol ini membuka kamera untuk mengambil bukti foto real-time yang akan dikirim ke{' '}
-                {sibling.name} untuk dikonfirmasi.
-              </p>
+              {!allTasksDone && (
+                <p className="card__text card__text--muted card__text--center">
+                  Selesaikan semua checklist pembersihan terlebih dahulu.
+                </p>
+              )}
+              {allTasksDone && (
+                <p className="card__text card__text--muted card__text--center">
+                  Tombol ini membuka kamera untuk mengambil bukti foto real-time yang akan dikirim ke{' '}
+                  {sibling.name} untuk dikonfirmasi.
+                </p>
+              )}
             </>
           ) : (
             <PhotoCapture

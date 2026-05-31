@@ -95,7 +95,7 @@ export function AppProvider({ children }) {
 
     const cleaner = getUser(cleanerId);
     const confirmer = getUser(confirmerId);
-    const nextCycle = getNextCycleDates(completedAt);
+    const nextCycle = getNextCycleDates(completedAt, confirmerId);
     const { cycleStartedAt, deadline: nextDeadline } = nextCycle;
 
     let historyText;

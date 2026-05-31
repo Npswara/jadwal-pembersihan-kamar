@@ -365,6 +365,10 @@ body {
   background: var(--pink);
 }
 
+.card--checklist {
+  background: var(--green);
+}
+
 .card--action {
   background: var(--yellow);
 }
@@ -550,6 +554,60 @@ body {
 
 .history-list__item:last-child {
   margin-bottom: 0;
+}
+
+/* Cleaning checklist */
+.cleaning-checklist__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.cleaning-checklist__desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.cleaning-checklist__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cleaning-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  box-shadow: 3px 3px 0 var(--border);
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.1s, background 0.1s;
+}
+
+.cleaning-checklist__item:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.cleaning-checklist__item--done {
+  background: var(--yellow);
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.cleaning-checklist__item input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* Photo capture */
