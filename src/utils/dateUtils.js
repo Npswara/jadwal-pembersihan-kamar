@@ -6,6 +6,17 @@ export function addDays(date, days) {
   return result;
 }
 
+export function getFirstOfNextMonth(fromDate = new Date()) {
+  const d = new Date(fromDate);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0);
+}
+
+export function getNextCycleDates(fromDate = new Date()) {
+  const cycleStartedAt = getFirstOfNextMonth(fromDate);
+  const deadline = addDays(cycleStartedAt, CYCLE_DAYS);
+  return { cycleStartedAt, deadline };
+}
+
 export function formatDateId(date) {
   if (!date) return '—';
   const d = new Date(date);
@@ -30,6 +41,11 @@ export function formatDateShort(date) {
   });
 }
 
+export function isBeforeCycleStart(cycleStartedAt) {
+  if (!cycleStartedAt) return false;
+  return Date.now() < new Date(cycleStartedAt).getTime();
+}
+
 export function getDaysLate(deadline) {
   if (!deadline) return 0;
   const now = Date.now();
@@ -51,24 +67,36 @@ export function formatRupiah(amount) {
   }).format(amount);
 }
 
-export function getCountdown(deadline) {
-  if (!deadline) {
-    return { days: 0, hours: 0, minutes: 0, expired: false, noDeadline: true };
-  }
-
-  const diff = new Date(deadline).getTime() - Date.now();
-
-  if (diff <= 0) {
-    return { days: 0, hours: 0, minutes: 0, expired: true, noDeadline: false };
-  }
-
+function splitTimeDiff(diff) {
   const days = Math.floor(diff / MS_PER_DAY);
   const hours = Math.floor((diff % MS_PER_DAY) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return { days, hours, minutes };
+}
 
-  return { days, hours, minutes, expired: false, noDeadline: false };
+export function getCountdown(deadline, cycleStartedAt) {
+  if (!deadline) {
+    return { days: 0, hours: 0, minutes: 0, expired: false, noDeadline: true, waiting: false };
+  }
+
+  const now = Date.now();
+  const start = cycleStartedAt ? new Date(cycleStartedAt).getTime() : null;
+
+  if (start && now < start) {
+    const { days, hours, minutes } = splitTimeDiff(start - now);
+    return { days, hours, minutes, expired: false, noDeadline: false, waiting: true };
+  }
+
+  const diff = new Date(deadline).getTime() - now;
+
+  if (diff <= 0) {
+    return { days: 0, hours: 0, minutes: 0, expired: true, noDeadline: false, waiting: false };
+  }
+
+  const { days, hours, minutes } = splitTimeDiff(diff);
+  return { days, hours, minutes, expired: false, noDeadline: false, waiting: false };
 }
 
 export function getNextDeadline(fromDate = new Date()) {
-  return addDays(fromDate, CYCLE_DAYS);
+  return getNextCycleDates(fromDate).deadline;
 }

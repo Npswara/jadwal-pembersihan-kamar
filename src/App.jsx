@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { CYCLE_DAYS } from './utils/constants';
 import Login from './components/Login';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -20,7 +21,7 @@ function AppContent() {
         {activeTab === 'dashboard' ? <Dashboard /> : <History />}
       </main>
       <footer className="app-footer">
-        <p>Jadwal estafet 30 hari · Kakak & Adik</p>
+        <p>Jadwal estafet {CYCLE_DAYS} hari · Kakak & Adik</p>
       </footer>
     </div>
   );

@@ -10,7 +10,7 @@ import { getUser, getSiblingId, USERS } from '../utils/constants';
 import {
   getDaysLate,
   getFineAmount,
-  getNextDeadline,
+  getNextCycleDates,
   formatDateShort,
 } from '../utils/dateUtils';
 import { verifyPassword } from '../utils/auth';
@@ -95,7 +95,8 @@ export function AppProvider({ children }) {
 
     const cleaner = getUser(cleanerId);
     const confirmer = getUser(confirmerId);
-    const nextDeadline = getNextDeadline(completedAt);
+    const nextCycle = getNextCycleDates(completedAt);
+    const { cycleStartedAt, deadline: nextDeadline } = nextCycle;
 
     let historyText;
     if (onTime) {
@@ -119,7 +120,7 @@ export function AppProvider({ children }) {
       ...prev,
       currentHolder: confirmerId,
       deadline: nextDeadline.toISOString(),
-      cycleStartedAt: completedAt.toISOString(),
+      cycleStartedAt: cycleStartedAt.toISOString(),
       totalKas: prev.totalKas + fine,
       history: [entry, ...prev.history],
       pendingPhoto: null,
@@ -127,7 +128,7 @@ export function AppProvider({ children }) {
 
     return {
       ok: true,
-      message: `Konfirmasi berhasil. Giliran berikutnya: ${confirmer.name}. Batas waktu baru: ${formatDateShort(nextDeadline)}.`,
+      message: `Konfirmasi berhasil. Giliran berikutnya: ${confirmer.name}. Timer dimulai ${formatDateShort(cycleStartedAt)}. Batas waktu: ${formatDateShort(nextDeadline)}.`,
     };
   }, [currentUserId, state.pendingPhoto, state.deadline]);
 

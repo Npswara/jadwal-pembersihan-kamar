@@ -1,7 +1,7 @@
 export const STORAGE_KEY = 'roomCleaningApp';
 export const SESSION_KEY = 'roomCleaningSession';
 
-export const CYCLE_DAYS = 30;
+export const CYCLE_DAYS = 20;
 export const FINE_PER_DAY = 5000;
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

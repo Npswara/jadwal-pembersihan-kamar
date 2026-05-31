@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { getUser, FINE_PER_DAY } from '../utils/constants';
-import { formatDateId, getDaysLate, getFineAmount, formatRupiah } from '../utils/dateUtils';
+import { getUser, FINE_PER_DAY, CYCLE_DAYS } from '../utils/constants';
+import { formatDateId, getDaysLate, getFineAmount, formatRupiah, isBeforeCycleStart } from '../utils/dateUtils';
 import Countdown from './Countdown';
 import PhotoCapture from './PhotoCapture';
 import PendingPhotoReview from './PendingPhotoReview';
@@ -16,7 +16,14 @@ export default function Dashboard() {
   const sibling = getUser(getUser(currentUserId).siblingId);
   const daysLate = state.deadline ? getDaysLate(state.deadline) : 0;
   const fine = state.deadline ? getFineAmount(state.deadline) : 0;
+  const waitingForCycle = state.cycleStartedAt && isBeforeCycleStart(state.cycleStartedAt);
   const hasPending = !!state.pendingPhoto;
+
+  const deadlineText = state.deadline
+    ? waitingForCycle
+      ? `Timer dimulai ${formatDateId(state.cycleStartedAt)}. Batas waktu pembersihan: ${formatDateId(state.deadline)}.`
+      : `Batas waktu pembersihan berikutnya adalah ${formatDateId(state.deadline)}.`
+    : null;
 
   const handlePhotoCapture = (imageData) => {
     const result = submitPhotoProof(imageData);
@@ -32,13 +39,12 @@ export default function Dashboard() {
             <h2 className="card__title status__title">
               Jadwal Pembersihan Bulan Ini: {holder.name}
             </h2>
-            {state.deadline ? (
-              <p className="card__text">
-                Batas waktu pembersihan berikutnya adalah {formatDateId(state.deadline)}.
-              </p>
+            {deadlineText ? (
+              <p className="card__text">{deadlineText}</p>
             ) : (
               <p className="card__text">
-                Giliran pertama Anda. Mulai timer 30 hari untuk mencatat batas waktu.
+                Giliran pertama Anda. Timer {CYCLE_DAYS} hari dimulai tanggal 1 bulan berikutnya
+                setelah konfirmasi pembersihan.
               </p>
             )}
           </>
@@ -47,9 +53,11 @@ export default function Dashboard() {
             <h2 className="card__title status__title">
               Jadwal Pembersihan Bulan Ini: {holder.name}
             </h2>
-            {state.deadline ? (
+            {deadlineText ? (
               <p className="card__text">
-                Saat ini {holder.name} sedang bertanggung jawab hingga {formatDateId(state.deadline)}.
+                {waitingForCycle
+                  ? `${holder.name} menunggu awal periode. ${deadlineText}`
+                  : `Saat ini ${holder.name} sedang bertanggung jawab hingga ${formatDateId(state.deadline)}.`}
               </p>
             ) : (
               <p className="card__text">
@@ -60,12 +68,13 @@ export default function Dashboard() {
         )}
       </section>
 
-      <Countdown deadline={state.deadline} />
+      <Countdown deadline={state.deadline} cycleStartedAt={state.cycleStartedAt} />
 
       <section className={`card card--fine${daysLate > 0 ? ' card--fine-late' : ''}`}>
         <h2 className="card__title">Aturan Denda</h2>
         <p className="card__text fine-info">
-          Setiap pemegang giliran diberi waktu <strong>30 hari</strong> untuk membersihkan kamar.
+          Setelah pembersihan dikonfirmasi, timer dimulai tanggal <strong>1 bulan berikutnya</strong>.
+          Pemegang giliran diberi waktu <strong>{CYCLE_DAYS} hari</strong> sejak tanggal tersebut.
           Jika batas waktu terlewati, denda sebesar <strong>{formatRupiah(FINE_PER_DAY)}</strong> per
           hari keterlambatan akan dihitung otomatis dan masuk ke dana kas kebersihan bersama.
         </p>
@@ -84,7 +93,7 @@ export default function Dashboard() {
         ) : (
           <>
             <p className="fine-text fine-text--late">
-              Masa tenggang 30 hari telah terlewati ({daysLate} hari terlambat). Akumulasi denda
+              Masa tenggang {CYCLE_DAYS} hari telah terlewati ({daysLate} hari terlambat). Akumulasi denda
               saat ini: <strong>{formatRupiah(fine)}</strong>.
               {!isHolder && ` (Tanggung jawab ${holder.name})`}
             </p>
