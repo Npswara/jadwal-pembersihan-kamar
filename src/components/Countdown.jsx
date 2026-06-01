@@ -12,7 +12,7 @@ export default function Countdown({ deadline, cycleStartedAt }) {
       <div className="countdown countdown--idle">
         <p className="countdown__label">Timer belum dimulai</p>
         <p className="countdown__hint">
-          Timer {CYCLE_DAYS} hari dimulai tanggal 1 bulan berikutnya setelah saudara mengonfirmasi bukti
+          Timer hari dimulai tanggal 1 bulan berikutnya setelah saudara mengonfirmasi bukti
           foto pembersihan.
         </p>
       </div>
