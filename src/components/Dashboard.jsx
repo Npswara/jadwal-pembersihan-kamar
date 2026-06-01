@@ -31,6 +31,8 @@ export default function Dashboard() {
   const hasPending = !!state.pendingPhoto;
   const allTasksDone = CLEANING_TASKS.every((_, i) => checkedTasks[i]);
 
+  const canSubmitCleaning = !waitingForCycle;
+
   useEffect(() => {
     setCheckedTasks({});
   }, [state.currentHolder]);
@@ -155,7 +157,7 @@ export default function Dashboard() {
                 type="button"
                 className="btn btn--primary btn--large btn--block"
                 onClick={() => setShowCamera(true)}
-                disabled={!allTasksDone}
+                disabled={!allTasksDone || !canSubmitCleaning}
               >
                 Saya Sudah Selesai Membersihkan Kamar
               </button>
