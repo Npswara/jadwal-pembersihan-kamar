@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Aplikasi keluarga (Kakak & Adik) tanpa Firebase Auth.
+    // Salin file ini ke Firebase Console → Firestore → Rules → Publish.
+
+    match /app/{docId} {
+      allow read, write: if true;
+    }
+
+    match /history/{entryId} {
+      allow read, write: if true;
+    }
+  }
+}

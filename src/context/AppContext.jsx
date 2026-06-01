@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {
-  loadState,
-  saveState,
-  getSession,
-  setSession,
-  clearSession,
-} from '../utils/storage';
+import { getSession, setSession, clearSession, DEFAULT_PASSWORDS } from '../utils/storage';
 import { getUser, getSiblingId, USERS } from '../utils/constants';
 import {
   getDaysLate,
@@ -14,34 +8,97 @@ import {
   formatDateShort,
 } from '../utils/dateUtils';
 import { verifyPassword } from '../utils/auth';
+import { isFirebaseConfigured, isOfflineFirestoreError, formatFirebaseError } from '../lib/firebase';
+import {
+  loadSharedData,
+  subscribeToChanges,
+  uploadPendingPhoto,
+  deletePendingPhoto,
+  updateAppState,
+  insertHistoryEntry,
+  clearAllHistory,
+} from '../lib/firebaseApi';
 
 const AppContext = createContext(null);
 
+const emptyState = () => ({
+  currentHolder: 'kakak',
+  deadline: null,
+  cycleStartedAt: null,
+  totalKas: 0,
+  history: [],
+  pendingPhoto: null,
+});
+
 export function AppProvider({ children }) {
-  const [state, setState] = useState(loadState);
+  const [state, setState] = useState(emptyState);
   const [currentUserId, setCurrentUserId] = useState(getSession);
   const [tick, setTick] = useState(0);
+  const [syncing, setSyncing] = useState(true);
+  const [syncError, setSyncError] = useState(null);
 
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    if (!isFirebaseConfigured) {
+      setSyncError('Firebase belum dikonfigurasi. Buat file .env dari .env.example.');
+      setSyncing(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const data = await loadSharedData();
+        if (!cancelled) {
+          setState(data);
+          setSyncError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSyncError(formatFirebaseError(err, 'Gagal memuat data dari Firebase.'));
+        }
+      } finally {
+        if (!cancelled) setSyncing(false);
+      }
+    }
+
+    init();
+
+    const unsubscribe = subscribeToChanges({
+      onAppState: (appState) => {
+        setState((prev) => ({ ...prev, ...appState }));
+      },
+      onHistory: (history) => {
+        setState((prev) => ({ ...prev, history }));
+      },
+      onPendingPhoto: (pendingPhoto) => {
+        setState((prev) => ({ ...prev, pendingPhoto }));
+      },
+      onError: (err) => {
+        if (isOfflineFirestoreError(err)) return;
+        setSyncError(formatFirebaseError(err, 'Gagal sinkronisasi realtime Firebase.'));
+      },
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const login = useCallback(
-    async (userId, password) => {
-      const storedHash = state.passwords[userId];
-      const valid = await verifyPassword(password, storedHash);
-      if (!valid) return { ok: false, message: 'Kata sandi tidak sesuai. Silakan coba lagi.' };
-      setSession(userId);
-      setCurrentUserId(userId);
-      return { ok: true };
-    },
-    [state.passwords]
-  );
+  const login = useCallback(async (userId, password) => {
+    const storedHash = DEFAULT_PASSWORDS[userId];
+    const valid = await verifyPassword(password, storedHash);
+    if (!valid) return { ok: false, message: 'Kata sandi tidak sesuai. Silakan coba lagi.' };
+    setSession(userId);
+    setCurrentUserId(userId);
+    return { ok: true };
+  }, []);
 
   const logout = useCallback(() => {
     clearSession();
@@ -49,7 +106,10 @@ export function AppProvider({ children }) {
   }, []);
 
   const submitPhotoProof = useCallback(
-    (imageData) => {
+    async (imageData) => {
+      if (!isFirebaseConfigured) {
+        return { ok: false, message: 'Firebase belum dikonfigurasi.' };
+      }
       if (!currentUserId) return { ok: false, message: 'Sesi tidak aktif.' };
       if (state.currentHolder !== currentUserId) {
         return { ok: false, message: 'Hanya pemegang giliran yang dapat mengirim bukti foto.' };
@@ -58,27 +118,28 @@ export function AppProvider({ children }) {
         return { ok: false, message: 'Masih ada bukti foto yang menunggu konfirmasi.' };
       }
 
-      setState((prev) => ({
-        ...prev,
-        pendingPhoto: {
-          from: currentUserId,
-          imageData,
-          submittedAt: new Date().toISOString(),
-        },
-      }));
-      return { ok: true, message: 'Bukti foto telah dikirim. Menunggu konfirmasi dari saudara.' };
+      try {
+        const pendingPhoto = await uploadPendingPhoto(currentUserId, imageData);
+        setState((prev) => ({ ...prev, pendingPhoto }));
+        return { ok: true, message: 'Bukti foto telah dikirim. Menunggu konfirmasi dari saudara.' };
+      } catch (err) {
+        return { ok: false, message: err.message ?? 'Gagal mengunggah foto.' };
+      }
     },
     [currentUserId, state.currentHolder, state.pendingPhoto]
   );
 
-  const confirmPhoto = useCallback(() => {
+  const confirmPhoto = useCallback(async () => {
+    if (!isFirebaseConfigured) {
+      return { ok: false, message: 'Firebase belum dikonfigurasi.' };
+    }
     if (!currentUserId || !state.pendingPhoto) {
       return { ok: false, message: 'Tidak ada bukti foto untuk dikonfirmasi.' };
     }
 
-    const { from, submittedAt } = state.pendingPhoto;
+    const pending = state.pendingPhoto;
     const confirmerId = currentUserId;
-    const cleanerId = from;
+    const cleanerId = pending.from;
 
     if (confirmerId === cleanerId) {
       return { ok: false, message: 'Anda tidak dapat mengonfirmasi bukti foto sendiri.' };
@@ -116,23 +177,39 @@ export function AppProvider({ children }) {
       text: historyText,
     };
 
-    setState((prev) => ({
-      ...prev,
-      currentHolder: confirmerId,
-      deadline: nextDeadline.toISOString(),
-      cycleStartedAt: cycleStartedAt.toISOString(),
-      totalKas: prev.totalKas + fine,
-      history: [entry, ...prev.history],
-      pendingPhoto: null,
-    }));
+    try {
+      await deletePendingPhoto(pending);
+      await insertHistoryEntry(entry);
+      await updateAppState({
+        currentHolder: confirmerId,
+        deadline: nextDeadline.toISOString(),
+        cycleStartedAt: cycleStartedAt.toISOString(),
+        totalKas: state.totalKas + fine,
+      });
 
-    return {
-      ok: true,
-      message: `Konfirmasi berhasil. Giliran berikutnya: ${confirmer.name}. Timer dimulai ${formatDateShort(cycleStartedAt)}. Batas waktu: ${formatDateShort(nextDeadline)}.`,
-    };
-  }, [currentUserId, state.pendingPhoto, state.deadline]);
+      setState((prev) => ({
+        ...prev,
+        currentHolder: confirmerId,
+        deadline: nextDeadline.toISOString(),
+        cycleStartedAt: cycleStartedAt.toISOString(),
+        totalKas: prev.totalKas + fine,
+        history: [entry, ...prev.history],
+        pendingPhoto: null,
+      }));
 
-  const rejectPhoto = useCallback(() => {
+      return {
+        ok: true,
+        message: `Konfirmasi berhasil. Giliran berikutnya: ${confirmer.name}. Timer dimulai ${formatDateShort(cycleStartedAt)}. Batas waktu: ${formatDateShort(nextDeadline)}.`,
+      };
+    } catch (err) {
+      return { ok: false, message: err.message ?? 'Gagal mengonfirmasi bukti foto.' };
+    }
+  }, [currentUserId, state.pendingPhoto, state.deadline, state.totalKas]);
+
+  const rejectPhoto = useCallback(async () => {
+    if (!isFirebaseConfigured) {
+      return { ok: false, message: 'Firebase belum dikonfigurasi.' };
+    }
     if (!currentUserId || !state.pendingPhoto) {
       return { ok: false, message: 'Tidak ada bukti foto.' };
     }
@@ -140,20 +217,30 @@ export function AppProvider({ children }) {
       return { ok: false, message: 'Tidak dapat menolak bukti sendiri.' };
     }
 
-    setState((prev) => ({ ...prev, pendingPhoto: null }));
-    return { ok: true, message: 'Bukti foto ditolak. Pemegang giliran diminta mengirim ulang.' };
+    try {
+      await deletePendingPhoto(state.pendingPhoto);
+      setState((prev) => ({ ...prev, pendingPhoto: null }));
+      return { ok: true, message: 'Bukti foto ditolak. Pemegang giliran diminta mengirim ulang.' };
+    } catch (err) {
+      return { ok: false, message: err.message ?? 'Gagal menolak bukti foto.' };
+    }
   }, [currentUserId, state.pendingPhoto]);
 
-  const clearHistory = useCallback(() => {
+  const clearHistory = useCallback(async () => {
+    if (!isFirebaseConfigured) {
+      return { ok: false, message: 'Firebase belum dikonfigurasi.' };
+    }
     if (currentUserId !== 'kakak') {
       return { ok: false, message: 'Hanya Kakak yang dapat menghapus riwayat.' };
     }
-    setState((prev) => ({
-      ...prev,
-      history: [],
-      totalKas: 0,
-    }));
-    return { ok: true, message: 'Riwayat dan dana kas telah direset.' };
+
+    try {
+      await clearAllHistory();
+      setState((prev) => ({ ...prev, history: [], totalKas: 0 }));
+      return { ok: true, message: 'Riwayat dan dana kas telah direset.' };
+    } catch (err) {
+      return { ok: false, message: err.message ?? 'Gagal menghapus riwayat.' };
+    }
   }, [currentUserId]);
 
   const value = {
@@ -161,6 +248,8 @@ export function AppProvider({ children }) {
     currentUserId,
     currentUser: currentUserId ? getUser(currentUserId) : null,
     tick,
+    syncing,
+    syncError,
     login,
     logout,
     submitPhotoProof,

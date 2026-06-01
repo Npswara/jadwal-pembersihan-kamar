@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { getUser } from '../utils/constants';
 import { formatDateShort } from '../utils/dateUtils';
 
 export default function PendingPhotoReview() {
   const { state, currentUserId, confirmPhoto, rejectPhoto } = useApp();
+  const [loading, setLoading] = useState(false);
   const pending = state.pendingPhoto;
 
   if (!pending) return null;
@@ -11,6 +13,22 @@ export default function PendingPhotoReview() {
   const sender = getUser(pending.from);
   const isSender = currentUserId === pending.from;
   const isSibling = currentUserId && pending.from !== currentUserId;
+  const imageSrc = pending.imageData;
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    const result = await confirmPhoto();
+    setLoading(false);
+    alert(result.message);
+  };
+
+  const handleReject = async () => {
+    if (!window.confirm('Tolak bukti foto ini? Pemegang giliran harus mengirim ulang.')) return;
+    setLoading(true);
+    const result = await rejectPhoto();
+    setLoading(false);
+    alert(result.message);
+  };
 
   return (
     <section className="card card--photo-review">
@@ -23,7 +41,7 @@ export default function PendingPhotoReview() {
       </p>
 
       <div className="photo-review__image-wrap">
-        <img src={pending.imageData} alt={`Bukti kebersihan dari ${sender.name}`} />
+        <img src={imageSrc} alt={`Bukti kebersihan dari ${sender.name}`} />
       </div>
 
       {isSender && (
@@ -37,26 +55,21 @@ export default function PendingPhotoReview() {
         <div className="photo-review__actions">
           <p className="card__text">
             Setelah Anda mengonfirmasi, giliran pembersihan berikutnya akan menjadi tanggung jawab Anda.
+            Foto akan dihapus dari database setelah konfirmasi.
           </p>
           <button
             type="button"
             className="btn btn--primary btn--large"
-            onClick={() => {
-              const result = confirmPhoto();
-              alert(result.message);
-            }}
+            onClick={handleConfirm}
+            disabled={loading}
           >
-            Konfirmasi Kamar Sudah Bersih
+            {loading ? 'Memproses…' : 'Konfirmasi Kamar Sudah Bersih'}
           </button>
           <button
             type="button"
             className="btn btn--ghost"
-            onClick={() => {
-              if (window.confirm('Tolak bukti foto ini? Pemegang giliran harus mengirim ulang.')) {
-                const result = rejectPhoto();
-                alert(result.message);
-              }
-            }}
+            onClick={handleReject}
+            disabled={loading}
           >
             Tolak — Minta Kirim Ulang
           </button>

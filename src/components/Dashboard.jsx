@@ -15,9 +15,10 @@ import PhotoCapture from './PhotoCapture';
 import PendingPhotoReview from './PendingPhotoReview';
 
 export default function Dashboard() {
-  const { state, currentUserId, submitPhotoProof } = useApp();
+  const { state, currentUserId, submitPhotoProof, syncing, syncError } = useApp();
   const [showCamera, setShowCamera] = useState(false);
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState({});
 
   const isHolder = state.currentHolder === currentUserId;
@@ -44,11 +45,22 @@ export default function Dashboard() {
       : `Batas waktu pembersihan berikutnya adalah ${formatDateId(state.deadline)}.`
     : null;
 
-  const handlePhotoCapture = (imageData) => {
-    const result = submitPhotoProof(imageData);
+  const handlePhotoCapture = async (imageData) => {
+    setUploading(true);
+    setMessage('');
+    const result = await submitPhotoProof(imageData);
+    setUploading(false);
     setMessage(result.message);
     if (result.ok) setShowCamera(false);
   };
+
+  if (syncing) {
+    return <p className="message message--info">Memuat data dari Firebase…</p>;
+  }
+
+  if (syncError) {
+    return <p className="message message--error">{syncError}</p>;
+  }
 
   return (
     <div className="dashboard">
@@ -164,6 +176,7 @@ export default function Dashboard() {
               onCapture={handlePhotoCapture}
               onCancel={() => setShowCamera(false)}
               disabled={false}
+              submitting={uploading}
             />
           )}
         </section>

@@ -1,4 +1,3 @@
-export const STORAGE_KEY = 'roomCleaningApp';
 export const SESSION_KEY = 'roomCleaningSession';
 
 export const CYCLE_DAYS = 20;
@@ -11,6 +10,7 @@ export const CLEANING_TASKS = [
   'Menyapu lantai',
   'Menurunkan pakaian',
   'Merapikan kasur',
+  'Merapikan barang yang ada di kamar',
 ];
 
 export function getCycleDaysForUser(userId) {

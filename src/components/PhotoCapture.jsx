@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 
-export default function PhotoCapture({ onCapture, onCancel, disabled }) {
+export default function PhotoCapture({ onCapture, onCancel, disabled, submitting = false }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -83,7 +83,7 @@ export default function PhotoCapture({ onCapture, onCancel, disabled }) {
   };
 
   const handleSubmit = () => {
-    if (preview) onCapture(preview);
+    if (preview && !submitting) onCapture(preview);
   };
 
   if (disabled) return null;
@@ -124,11 +124,16 @@ export default function PhotoCapture({ onCapture, onCancel, disabled }) {
             <img src={preview} alt="Pratinjau bukti kebersihan" className="photo-capture__preview" />
           </div>
           <div className="photo-capture__actions">
-            <button type="button" className="btn btn--secondary" onClick={handleRetake}>
+            <button type="button" className="btn btn--secondary" onClick={handleRetake} disabled={submitting}>
               Ambil Ulang
             </button>
-            <button type="button" className="btn btn--primary" onClick={handleSubmit}>
-              Kirim Bukti ke Saudara
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? 'Mengunggah…' : 'Kirim Bukti ke Saudara'}
             </button>
           </div>
         </>
