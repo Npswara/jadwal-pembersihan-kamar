@@ -24,7 +24,7 @@ export default function Countdown({ deadline, cycleStartedAt }) {
       <div className="countdown countdown--idle">
         <p className="countdown__label">Menunggu awal periode giliran</p>
         <p className="countdown__hint">
-          Timer {CYCLE_DAYS} hari dimulai tanggal 1 bulan berikutnya. Sisa waktu menuju awal periode:
+          Timer hari dimulai tanggal 1 bulan berikutnya. Sisa waktu menuju awal periode:
         </p>
         <div className="countdown__grid">
           <div className="countdown__unit">
