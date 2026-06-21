@@ -67,11 +67,26 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <section className="card card--status">
+            <p
+          className="card__text card__text--muted"
+          style={{
+            textAlign: 'center',
+            marginBottom: '0.5rem',
+            border: '3px solid #0a0a0a',
+            boxShadow: '3px 3px 0 #0a0a0a',
+            padding: '0.5rem 0.75rem',
+            fontWeight: 900,
+            fontSize: '1rem',
+          }}
+        >
+          Kamar milik kak Nara
+        </p>
         {isHolder ? (
           <>
             <h2 className="card__title status__title">
               Jadwal Pembersihan Bulan Ini: {holder.name}
             </h2>
+
             {deadlineText ? (
               <p className="card__text">{deadlineText}</p>
             ) : (
