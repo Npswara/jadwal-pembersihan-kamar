@@ -75,11 +75,11 @@ export default function Dashboard() {
             border: '3px solid #0a0a0a',
             boxShadow: '3px 3px 0 #0a0a0a',
             padding: '0.5rem 0.75rem',
-            fontWeight: 900,
+            fontWeight: 'bold',
             fontSize: '1rem',
           }}
         >
-          Kamar milik kak Nara
+          Kamar milik : kak Nara
         </p>
         {isHolder ? (
           <>
