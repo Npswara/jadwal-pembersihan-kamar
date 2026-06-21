@@ -21,7 +21,7 @@ function AppContent() {
         {activeTab === 'dashboard' ? <Dashboard /> : <History />}
       </main>
       <footer className="app-footer">
-        <p>Jadwal estafet {CYCLE_DAYS} hari · Kakak & Adik</p>
+        <p>Tolong tepat waktu yaa</p>
       </footer>
     </div>
   );
