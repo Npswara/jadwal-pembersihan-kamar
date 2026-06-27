@@ -67,23 +67,6 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <section className="card card--status">
-            <p
-          className="card__text card__text--muted"
-          style={{
-            textAlign: 'center',
-            marginBottom: '0.5rem',
-            border: '3px solid #0a0a0a',
-            boxShadow: '3px 3px 0 #0a0a0a',
-            padding: '0.5rem 0.75rem',
-            fontWeight: 'bold',
-            fontSize: '1rem',
-          }}
-        >
-          Kamar milik : kak Nara <br></br>
-          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#f00000', fontStyle: 'italic' }}>
-            JANGAN RIBUT TERUTAMA PADA MALAM HARI!!
-          </span>
-        </p>
         {isHolder ? (
           <>
             <h2 className="card__title status__title">
@@ -119,6 +102,23 @@ export default function Dashboard() {
             )}
           </>
         )}
+         <p
+          className="card__text card__text--muted"
+          style={{
+            textAlign: 'center',
+            marginBottom: '0.5rem',
+            border: '3px solid #0a0a0a',
+            boxShadow: '3px 3px 0 #0a0a0a',
+            padding: '0.5rem 0.75rem',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Kamar milik : kak Nara <br></br>
+          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#f00000', fontStyle: 'italic' }}>
+            JANGAN RIBUT TERUTAMA PADA MALAM HARI!!
+          </span>
+        </p>
       </section>
 
       <Countdown deadline={state.deadline} cycleStartedAt={state.cycleStartedAt} />
