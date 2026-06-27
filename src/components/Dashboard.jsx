@@ -116,8 +116,7 @@ export default function Dashboard() {
         >
           Kamar milik : kak Nara <br></br>
           <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#f00000', fontStyle: 'italic' }}>
-            JANGAN RIBUT TERUTAMA PADA MALAM HARI!!
-          </span>
+            JANGAN RIBUT TERUTAMA PADA MALAM HARI!! <br></br> RIBUT = TAMBAHAN DENDA 100 RUPIAH</span>
         </p>
       </section>
 
