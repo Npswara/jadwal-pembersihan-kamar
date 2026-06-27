@@ -102,10 +102,12 @@ export default function Dashboard() {
             )}
           </>
         )}
+        <br></br>
          <p
           className="card__text card__text--muted"
           style={{
             textAlign: 'center',
+            backgroundColor: '#f0f0f0',
             marginBottom: '0.5rem',
             border: '3px solid #0a0a0a',
             boxShadow: '3px 3px 0 #0a0a0a',
